@@ -1,8 +1,9 @@
-// OCR-MRZ.js - KRITICKÁ VERZE: MANUÁLNÍ STAŽENÍ A VLOŽENÍ DAT DO WORKER FS
+// OCR-MRZ.js - KRITICKÁ VERZE: MANUÁLNÍ STAŽENÍ A VLOŽENÍ DAT DO WORKER FS (s .gz)
 
 // ABSOLUTNÍ CESTA NA NETLIFY (Potvrzeno uživatelem)
 const ABSOLUTE_TESSDATA_PATH = 'https://numerid.netlify.app/tessdata/';
-const TRAINED_DATA_FILE = 'mrz.traineddata'; // Zkusme standardní soubor
+// ZMĚNA: Používáme GZIP verzi, která by mohla obcházet chyby MIME typů.
+const TRAINED_DATA_FILE = 'mrz.traineddata.gz'; 
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -43,50 +44,47 @@ async function runOCR(card, mrzCoords) {
     const expectedLines = parseInt(card.getAttribute('data-mrz-lines') || '3'); 
     const inputFields = card.querySelectorAll('input[type="text"]');
     
-    console.log('--- OCR Start (Nuclear) ---');
+    console.log('--- OCR Start (Nuclear .GZ) ---');
     
     let worker = null; 
     let trainedData = null;
 
     try {
-        // !!! KROK 1: MANUÁLNÍ STAŽENÍ DAT PŘED VŠÍM OSTATNÍM !!!
+        // !!! KROK 1: MANUÁLNÍ STAŽENÍ GZIP DAT PŘED VŠÍM OSTATNÍM !!!
         const dataUrl = ABSOLUTE_TESSDATA_PATH + TRAINED_DATA_FILE;
-        console.log('2.1. Spouštění manuálního stahování Trained Data z:', dataUrl);
+        console.log('2.1. Spouštění manuálního stahování GZ Trained Data z:', dataUrl);
         
         const dataResponse = await fetch(dataUrl);
         if (!dataResponse.ok) {
-            // Zde uvidíte přesnou chybu, pokud je problém s MIME typem/CORS/404
-            throw new Error(`Chyba při stahování ${TRAINED_DATA_FILE}. Kód: ${dataResponse.status}`);
+            // Zde uvidíte přesnou chybu s kódem (např. 404, pokud soubor chybí)
+            throw new Error(`Chyba při stahování ${TRAINED_DATA_FILE}. Kód: ${dataResponse.status} - Zkontrolujte, zda je soubor nahrán a správně dostupný!`);
         }
         trainedData = await dataResponse.arrayBuffer();
-        console.log(`2.2. Trained Data (${TRAINED_DATA_FILE}) úspěšně stažena a připravena (ArrayBuffer). Velikost: ${trainedData.byteLength} bytů.`);
+        console.log(`2.2. Trained Data (${TRAINED_DATA_FILE}) úspěšně stažena (ArrayBuffer). Velikost: ${trainedData.byteLength} bytů.`);
         
         
         // !!! KROK 2: INICIALIZACE WORKERU A PŘÍMÉ VLOŽENÍ DAT DO JEHO SOUBOROVÉHO SYSTÉMU !!!
         console.log('3. Inicializace Tesseract Workeru a přímé vložení ArrayBufferu.');
         
         worker = await Tesseract.createWorker('mrz', 1, {
-            // Musíme Tesseractu stále říct, kde má hledat Worker a Core, ale data mu dáme ručně
+            // Cesty ke Workeru a WASM jádru (absolutní)
             workerPath: ABSOLUTE_TESSDATA_PATH + 'worker.min.js', 
             corePath: ABSOLUTE_TESSDATA_PATH + 'tesseract-core-simd-lstm.wasm.js', 
             workerBlobURL: false, 
             
-            // langPath je ignorován, ale držíme ho pro jistotu
+            // langPath je spíše informativní, ale držíme ho
             langPath: ABSOLUTE_TESSDATA_PATH, 
             
-            // !!! PŘÍMÁ INJEKCE DAT DO WORKER FS !!!
-            // Tímto přinutíme Worker, aby si data načetl z ArrayBufferu pod názvem, který očekává ('mrz.traineddata'),
-            // čímž obejdeme jeho chybnou interní logiku stahování.
+            // !!! PŘÍMÁ INJEKCE GZ DAT DO WORKER FS !!!
+            // Tesseract.js dekomprimuje dataArray a umístí je do FS Workeru pod názvem 'mrz.traineddata'.
             data: {
-                [TRAINED_DATA_FILE]: trainedData // Vloží ArrayBuffer pod správné jméno souboru
+                [TRAINED_DATA_FILE]: trainedData // Vloží ArrayBuffer pod názvem .gz souboru
             },
-            
-            // Už nepoužíváme `preload`, protože stahujeme ručně
             
             logger: m => console.log('TESSERACT LOG:', m) 
         });
         
-        console.log('4. Worker a data úspěšně inicializovány. Data vložena ručně.');
+        console.log('4. Worker a data úspěšně inicializovány. Data vložena ručně (GZ).');
         
         // --- Zbytek logiky OCR (beze změn) ---
         
@@ -131,10 +129,10 @@ async function runOCR(card, mrzCoords) {
     } catch (error) {
         let errorMessage = 'Zpracování Tesseractu selhalo.';
         if (error.message.includes('initialization failed') || error.message.includes('Chyba při stahování')) {
-             errorMessage = 'KRITICKÁ chyba inicializace. Data nebyla nalezena nebo se je nepodařilo ručně stáhnout (MIME typ/CORS).';
+             errorMessage = 'KRITICKÁ chyba inicializace. Data nebyla nalezena, ručně stažena nebo je problém s dekompresí GZIP.';
         }
         console.error('OCR CRITICAL ERROR:', errorMessage, error.message, error);
-        alert('Kritická chyba při OCR. Zkontrolujte konzoli pro detailní TESSERACT LOG. Pravděpodobně je nutné změnit TRAINED_DATA_FILE na .gz.');
+        alert('Kritická chyba při OCR. Zkontrolujte konzoli pro detailní TESSERACT LOG.');
         
     } finally {
         btnOcr.textContent = 'OCR'; 

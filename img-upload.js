@@ -16,8 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 let output;
                 
                 if(inputs.length === 3) {
-                    output = validateID(inputs).html;
+                    // Předpokládá funkci validateID z MRZ-calc.js
+                    output = validateID(inputs).html; 
                 } else if(inputs.length === 2) {
+                    // Předpokládá funkci validatePassport z MRZ-calc.js
                     output = validatePassport(inputs).html;
                 } else {
                     output = "❌ Neplatný počet řádků.";
@@ -39,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         
         
-        // 2. Logika tlačítka OCR (Pouze spouštěcí funkce)
+        // 2. Logika tlačítka OCR (Spouštění OCR nebo dialogu)
         const btnOcr = card.querySelector(".ocr-btn");
         const inputOcr = card.querySelector(".ocr-input"); 
 
@@ -47,17 +49,28 @@ document.addEventListener("DOMContentLoaded", () => {
             
             btnOcr.addEventListener('click', async () => {
                 
-                // Zkontrolujeme, zda je obrázek nahrán a MRZ zóna vybrána
-                if (!previewImg.src || !window.MRZ) {
-                    // Pokud není připraveno, spustíme dialog pro nahrání souboru (původní chování)
-                    inputOcr.click(); 
+                // Kontrolujeme, zda je obrázek vizuálně nahrán a zda je vybraná MRZ zóna
+                const isImageLoaded = previewImg.src && !previewImg.src.startsWith(''); // Zabraňuje prázdnému stringu
+                const isMRZSelected = !!window.MRZ;
+                
+                // --- DIAGNOSTICKÝ LOG START ---
+                console.log('--- OCR CLICK DIAGNOSTICS ---');
+                console.log('  isImageLoaded:', isImageLoaded, ' (src:', previewImg.src ? 'OK' : 'EMPTY', ')');
+                console.log('  isMRZSelected:', isMRZSelected);
+                // --- DIAGNOSTICKÝ LOG END ---
+                
+                // Zkontrolujeme, zda jsou splněny obě podmínky pro spuštění OCR
+                if (isImageLoaded && isMRZSelected) {
+                    console.log('  TRIGGERING: runOCR (Cesta B)');
+                    // runOCR je definováno v OCR-MRZ.js
+                    await runOCR(card); 
                 } else {
-                    // Pokud je připraveno, zavoláme externí funkci z OCR-MRZ.js
-                    await runOCR(card);
+                    console.log('  TRIGGERING: File dialog (Cesta A)');
+                    inputOcr.click(); 
                 }
             });
 
-            // Logika nahrávání souboru přes inputOcr change event (Beze změn)
+            // Logika nahrávání souboru přes inputOcr change event
             inputOcr.addEventListener('change', (e) => {
                 if(e.target.files && e.target.files[0]) {
                     const reader = new FileReader();
@@ -65,16 +78,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     reader.onload = function(event) {
                         previewImg.src = event.target.result;
                         imagePanel.hidden = false;
+                        
                         // Po nahrání nového obrázku zrušíme starou selekci
                         window.MRZ = null; 
-                        document.getElementById('selection-rect').style.display = 'none';
+                        
+                        // Zde je nutné provést kontrolu existence elementu
+                        const selectionRect = document.getElementById('selection-rect');
+                        if (selectionRect) {
+                            selectionRect.style.display = 'none';
+                        }
                     }
                     
                     reader.readAsDataURL(e.target.files[0]);
                 }
-                e.target.value = '';
+                e.target.value = ''; // Reset inputu pro možnost nahrání stejného souboru
             });
         }
     });
-
 });

@@ -1,4 +1,11 @@
-// OCR-MRZ.js - KONEČNÁ VERZE S RELATIVNÍ CESTOU A PRELOAD PRO GZ SOUBOR
+// OCR-MRZ.js - FINÁLNÍ VERZE S VYNUCENOU ABSOLUTNÍ CESTOU
+//
+// ABSOLUTNÍ CESTA NA NETLIFY
+const ABSOLUTE_TESSDATA_PATH = 'https://numerid.netlify.app/tessdata/';
+// Doporučujeme zkusit NE-GZIPPED verzi
+const TRAINED_DATA_FILE = 'mrz.traineddata'; 
+// Pokud by to selhalo, zkuste: const TRAINED_DATA_FILE = 'mrz.traineddata.gz';
+
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -15,7 +22,7 @@ function processOCRText(text) {
     return lines;
 }
 
-// Funkce pro centrální signalizaci (přesunuto z mrz-select.js)
+// Funkce pro centrální signalizaci (nutná pro synchronizaci tlačítek v mrz-select.js)
 if (typeof signalOcrEnd !== 'function') {
     window.signalOcrEnd = () => { /* Dummy */ };
 }
@@ -31,10 +38,7 @@ async function runOCR(card, mrzCoords) {
     
     if (!mrzCoords) { 
         console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí PŘEDANÉ MRZ souřadnice.');
-        
-        if (typeof signalOcrEnd === 'function') {
-            signalOcrEnd();
-        }
+        if (typeof signalOcrEnd === 'function') { signalOcrEnd(); }
         return;
     }
 
@@ -42,39 +46,34 @@ async function runOCR(card, mrzCoords) {
     const expectedLines = parseInt(card.getAttribute('data-mrz-lines') || '3'); 
     const inputFields = card.querySelectorAll('input[type="text"]');
     
-    // Nastavuje ČTENÍ... a deaktivuje tlačítka přes mrz-select.js (kvůli centrální logice)
-    
     console.log('--- OCR Start ---');
     console.log(`1. Zpracování pro MRZ zónu (předané): ${expectedLines} řádků`, mrzCoords);
     
     let worker = null; 
 
     try {
-        // !!! KROK 1: POUŽITÍ ČISTÉ RELATIVNÍ CESTY S KONCOVÝM LOMÍTKEM !!!
-        const relativePath = './tessdata/'; 
-        const trainedDataFile = 'mrz.traineddata.gz'; // !!! ZMĚNA NA GZ SOUBOR !!!
-
-        console.log(`2. Inicializace Tesseract Workeru z RELATIVNÍ CESTY s PRELOAD pro: ${trainedDataFile}`);
         
-        // Vytvoříme Worker S jazykem 'mrz'
+        console.log(`2. Inicializace Tesseract Workeru z ABSOLUTNÍ CESTY: ${ABSOLUTE_TESSDATA_PATH}`);
+        
+        // Vytvoříme Worker S jazykem 'mrz' a ABSOLUTNÍMI CESTAMI
         worker = await Tesseract.createWorker('mrz', 1, {
             // Cesty ke Workeru a WASM jádru
-            workerPath: relativePath + 'worker.min.js', 
-            corePath: relativePath + 'tesseract-core-simd-lstm.wasm.js', 
+            workerPath: ABSOLUTE_TESSDATA_PATH + 'worker.min.js', 
+            corePath: ABSOLUTE_TESSDATA_PATH + 'tesseract-core-simd-lstm.wasm.js', 
             workerBlobURL: false, // Pro self-hosting
             
-            // Nastavuje prefix, kde se soubory hledají (tuto cestu interně používá preload)
-            langPath: relativePath, 
+            // Nastavuje prefix, kde se traineddata soubory hledají
+            langPath: ABSOLUTE_TESSDATA_PATH, 
             
-            // !!! POUŽITÍ PRELOAD NA GZ SOUBOR !!! Vynutí stažení dat do Worker FS
-            preload: [relativePath + trainedDataFile],
+            // Použijeme preload k vynucení stažení souboru (pro jistotu)
+            preload: [ABSOLUTE_TESSDATA_PATH + TRAINED_DATA_FILE],
             
             logger: m => console.log('TESSERACT LOG:', m) 
         });
         
-        console.log('3. Worker a data úspěšně inicializovány. Předpokládá se použití přednačteného GZ souboru.');
+        console.log('3. Worker a data úspěšně inicializovány. Použita ABSOLUTNÍ CESTA.');
         
-        // --- Zbytek logiky OCR (beze změn) ---
+        // --- Logika OCR ---
         
         const naturalW = previewImg.naturalWidth;
         const naturalH = previewImg.naturalHeight;
@@ -115,8 +114,13 @@ async function runOCR(card, mrzCoords) {
         }
         
     } catch (error) {
-        console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error.message, error);
-        alert('Chyba při zpracování OCR. Zkuste znovu. (Zkontrolujte konzoli pro TESSERACT LOG)');
+        // Zde můžeme konečně vidět, co se děje, pokud ABSOLUTNÍ CESTA selže
+        let errorMessage = 'Zpracování Tesseractu selhalo.';
+        if (error.message.includes('initialization failed')) {
+             errorMessage = 'Inicializace Tesseractu selhala. Pravděpodobný problém s MIME typem, CORS nebo fyzickou nedostupností souborů na hostingu.';
+        }
+        console.error('OCR CRITICAL ERROR:', errorMessage, error.message, error);
+        alert('Kritická chyba při OCR. Zkontrolujte konzoli pro detailní TESSERACT LOG.');
         
     } finally {
         btnOcr.textContent = 'OCR'; 

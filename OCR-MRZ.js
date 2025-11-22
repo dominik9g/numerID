@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR S OPRAVOU CESTY K TRÉNOVACÍM DATŮM
+// OCR-MRZ.js - CELÝ SOUBOR S EXPLICITNÍMI CESTAMI CORE SOUBORŮ
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -46,13 +46,17 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // *** ZMĚNA ZDE: Cesta musí směřovat do adresáře 'tessdata'. ***
-        const localPath = 'tessdata/'; 
+        // *** KLÍČOVÁ ZMĚNA: Explicitní definice cest k Tesseract Core souborům ***
+        // Používáme CDN pro Core a Worker, abychom minimalizovali problémy Edge/Chromium.
+        const tesseractCDN = 'https://unpkg.com/tesseract.js@5.0.3/dist/'; 
+        const langDataPath = 'tessdata/'; // Lokální cesta pro mrz.traineddata.gz
 
-        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z cesty: ${localPath}`);
+        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z cesty: ${langDataPath}`);
         
         worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: localPath, // Tesseract Worker bude hledat 'tessdata/mrz.traineddata.gz'
+            langPath: langDataPath, // Lokální data (tessdata/mrz.traineddata.gz)
+            corePath: tesseractCDN + 'tesseract-core-simd-lstm.wasm.js', // CDN pro WASM Core
+            workerPath: tesseractCDN + 'worker.min.js', // CDN pro Worker Script
         });
         
         console.log('3. Worker úspěšně inicializován.');

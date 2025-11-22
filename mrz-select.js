@@ -1,6 +1,6 @@
 // mrz-select.js
 
-let MRZ = null; // Globální proměnná pro uložení souřadnic (pro externí použití, např. img-upload.js)
+let MRZ = null; // Globální proměnná pro uložení souřadnic
 let isSelecting = false;
 let startX, startY;
 let selectionRect;
@@ -114,7 +114,7 @@ function endSelection() {
     console.log('MRZ (normalizované souřadnice):', currentMRZ);
     console.log('Souřadnice jsou uloženy v globální proměnné MRZ.');
 
-    // --- NOVÁ LOGIKA: AUTOMATICKÉ SPUŠTĚNÍ OCR ---
+    // --- LOGIKA AUTOMATICKÉHO SPUŠTĚNÍ OCR ---
     if (typeof runOCR === 'function') {
         const isImageReady = (previewImg.src && previewImg.src.startsWith('data:'));
         

@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR
+// OCR-MRZ.js
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -70,9 +70,10 @@ async function runOCR(card, mrzCoords) {
         console.log('5. Recognice dokončena. Syrový text:', text);
 
         const lines = processOCRText(text);
-        const actualLines = lines.length; // Zjištěný počet řádků
+        const actualLines = lines.length; 
 
         // --- ŘEŠENÍ KONTAMINACE ---
+        
         if (actualLines === 0) {
             console.warn(`OCR result for card (lines: ${expectedLines}) was empty.`);
         } else if (actualLines !== expectedLines) {
@@ -97,8 +98,9 @@ async function runOCR(card, mrzCoords) {
         if (worker) {
             await worker.terminate();
         }
+        // Zajištění reaktivace tlačítka v případě chyby/dokončení, ale pouze pro text, ne pro disabled stav
+        // Tlačítko se resetuje při nahrání nové fotky v img-upload.js
         btnOcr.textContent = 'OCR';
-        btnOcr.disabled = false;
         console.log('--- OCR End ---');
     }
 }

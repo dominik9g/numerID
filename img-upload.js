@@ -1,4 +1,4 @@
-// img-upload.js - CELÝ SOUBOR S INTEGRACÍ MRZ-calc LISTENERS
+// img-upload.js
 
 document.addEventListener("DOMContentLoaded", () => {
     const imagePanel = document.getElementById('image-panel');
@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.querySelectorAll(".card").forEach(card=>{
-        // 1. Logika tlačítka KONTROLA (PŘESUNUTO Z MRZ-calc.js)
+        // 1. Logika tlačítka KONTROLA a VKLÁDACÍ TLAČÍTKA (Beze změn)
         const btnKontrola = card.querySelector(".kontrola-btn");
         const resultDiv = card.querySelector(".mrz-result");
         
@@ -47,8 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
         
-        // 1b. Logika VKLÁDACÍCH TLAČÍTEK (PŘESUNUTO Z MRZ-calc.js, ale už zde byla, necháme ji zde)
-        // Toto je správné místo pro insert-btn listenery
+        // 1b. Logika VKLÁDACÍCH TLAČÍTEK
         document.querySelectorAll('.insert-btn').forEach(btn=>{
             btn.addEventListener('click', ()=>{
                 const input = btn.previousElementSibling;

@@ -16,10 +16,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 let output;
                 
                 if(inputs.length === 3) {
-                    // Předpokládá funkci validateID z MRZ-calc.js
                     output = validateID(inputs).html; 
                 } else if(inputs.length === 2) {
-                    // Předpokládá funkci validatePassport z MRZ-calc.js
                     output = validatePassport(inputs).html;
                 } else {
                     output = "❌ Neplatný počet řádků.";
@@ -49,23 +47,22 @@ document.addEventListener("DOMContentLoaded", () => {
             
             btnOcr.addEventListener('click', async () => {
                 
-                // Kontrolujeme, zda je obrázek vizuálně nahrán a zda je vybraná MRZ zóna
-                const isImageLoaded = previewImg.src && !previewImg.src.startsWith(''); // Zabraňuje prázdnému stringu
+                // OPRAVENÁ LOGIKA: Kontrolujeme, zda src obsahuje Data URL
+                const isImageLoaded = previewImg.src.startsWith('data:'); 
                 const isMRZSelected = !!window.MRZ;
                 
                 // --- DIAGNOSTICKÝ LOG START ---
                 console.log('--- OCR CLICK DIAGNOSTICS ---');
-                console.log('  isImageLoaded:', isImageLoaded, ' (src:', previewImg.src ? 'OK' : 'EMPTY', ')');
+                console.log('  isImageLoaded:', isImageLoaded, ' (src starts with data:? ' + previewImg.src.startsWith('data:') + ')');
                 console.log('  isMRZSelected:', isMRZSelected);
                 // --- DIAGNOSTICKÝ LOG END ---
                 
                 // Zkontrolujeme, zda jsou splněny obě podmínky pro spuštění OCR
                 if (isImageLoaded && isMRZSelected) {
                     console.log('  TRIGGERING: runOCR (Cesta B)');
-                    // runOCR je definováno v OCR-MRZ.js
                     await runOCR(card); 
                 } else {
-                    console.log('  TRIGGERING: File dialog (Cesta A)');
+                    console.log('  TRIGGERING: File dialog (Cesta A) - Chyba: Chybí MRZ zóna nebo Data URL obrázku.');
                     inputOcr.click(); 
                 }
             });
@@ -82,7 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         // Po nahrání nového obrázku zrušíme starou selekci
                         window.MRZ = null; 
                         
-                        // Zde je nutné provést kontrolu existence elementu
                         const selectionRect = document.getElementById('selection-rect');
                         if (selectionRect) {
                             selectionRect.style.display = 'none';
@@ -91,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     reader.readAsDataURL(e.target.files[0]);
                 }
-                e.target.value = ''; // Reset inputu pro možnost nahrání stejného souboru
+                e.target.value = '';
             });
         }
     });

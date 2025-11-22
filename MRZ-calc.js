@@ -101,38 +101,3 @@ function validateID(lines){
   
   return {ok:true, html:out};
 }
-
-// --- Event Listeners ---
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".card").forEach(card=>{
-    const btn = card.querySelector(".kontrola-btn");
-    if(!btn) return;
-    const resultDiv = card.querySelector(".mrz-result");
-
-    btn.addEventListener("click",()=>{
-      const inputs = [...card.querySelectorAll("input")].map(i=>i.value.trim().toUpperCase());
-      let output;
-      
-      if(inputs.length === 3) {
-        output = validateID(inputs).html;
-      } else if(inputs.length === 2) {
-        output = validatePassport(inputs).html;
-      } else {
-        output = "❌ Neplatný počet řádků.";
-      }
-      
-      resultDiv.innerHTML = output;
-      resultDiv.classList.add('show');
-    });
-  });
-
-  document.querySelectorAll('.insert-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const input = btn.previousElementSibling;
-      if(input && input.tagName === 'INPUT'){
-        input.value += '<';
-        input.focus();
-      }
-    });
-  });
-});

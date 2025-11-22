@@ -46,13 +46,13 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // *** ZMĚNA ZDE: Použijeme lokální cestu. Soubor musí být v kořenovém adresáři. ***
-        const localPath = './'; 
+        // *** ZMĚNA ZDE: Cesta musí směřovat do adresáře 'tessdata'. ***
+        const localPath = 'tessdata/'; 
 
-        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z lokální cesty: ${localPath}`);
+        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z cesty: ${localPath}`);
         
         worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: localPath, // Tesseract Worker bude hledat './mrz.traineddata.gz'
+            langPath: localPath, // Tesseract Worker bude hledat 'tessdata/mrz.traineddata.gz'
         });
         
         console.log('3. Worker úspěšně inicializován.');

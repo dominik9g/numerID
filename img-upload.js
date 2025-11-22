@@ -1,7 +1,6 @@
 // img-upload.js
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Elementy pro náhled obrázku
     const imagePanel = document.getElementById('image-panel');
     const previewImg = document.getElementById('preview-img');
 
@@ -39,31 +38,20 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         
         
-        // 2. Logika tlačítka OCR (Spouštění OCR nebo dialogu)
+        // 2. Logika tlačítka OCR (Nyní slouží jen pro nahrání souboru)
         const btnOcr = card.querySelector(".ocr-btn");
         const inputOcr = card.querySelector(".ocr-input"); 
 
         if (btnOcr && inputOcr) {
             
-            btnOcr.addEventListener('click', async () => {
-                
-                // OPRAVENÁ LOGIKA: Kontrolujeme, zda src obsahuje Data URL
+            btnOcr.addEventListener('click', () => {
                 const isImageLoaded = previewImg.src.startsWith('data:'); 
-                const isMRZSelected = !!window.MRZ;
                 
-                // --- DIAGNOSTICKÝ LOG START ---
-                console.log('--- OCR CLICK DIAGNOSTICS ---');
-                console.log('  isImageLoaded:', isImageLoaded, ' (src starts with data:? ' + previewImg.src.startsWith('data:') + ')');
-                console.log('  isMRZSelected:', isMRZSelected);
-                // --- DIAGNOSTICKÝ LOG END ---
-                
-                // Zkontrolujeme, zda jsou splněny obě podmínky pro spuštění OCR
-                if (isImageLoaded && isMRZSelected) {
-                    console.log('  TRIGGERING: runOCR (Cesta B)');
-                    await runOCR(card); 
-                } else {
-                    console.log('  TRIGGERING: File dialog (Cesta A) - Chyba: Chybí MRZ zóna nebo Data URL obrázku.');
+                // Pokud obrázek není nahrán, otevřeme dialog. Jinak nic neděláme (OCR se spouští při výběru).
+                if (!isImageLoaded) {
                     inputOcr.click(); 
+                } else {
+                    // console.log('Obrázek je nahrán, OCR se spouští výběrem zóny.');
                 }
             });
 

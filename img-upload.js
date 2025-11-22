@@ -1,11 +1,11 @@
-// img-upload.js - CELÝ SOUBOR
+// img-upload.js
 
 document.addEventListener("DOMContentLoaded", () => {
     const imagePanel = document.getElementById('image-panel');
     const previewImg = document.getElementById('preview-img');
 
     /**
-     * Vymaže všechny inputy a výsledky kontroly v sekcích.
+     * Vymaže všechny inputy, výsledky kontroly A RESETUJE TLAČÍTKA.
      */
     function clearAllInputs() {
         document.querySelectorAll(".card input[type='text']").forEach(input => {
@@ -14,6 +14,12 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".mrz-result").forEach(resultDiv => {
             resultDiv.innerHTML = '';
             resultDiv.classList.remove('show');
+        });
+        
+        // --- LOGIKA RESETU TLAČÍTKA ---
+        document.querySelectorAll(".ocr-btn").forEach(btn => {
+            btn.textContent = 'OCR';
+            btn.disabled = false; // Nastaví tlačítko zpět na aktivní
         });
     }
 
@@ -60,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
             btnOcr.addEventListener('click', () => {
                 const isImageLoaded = previewImg.src.startsWith('data:'); 
                 
+                // Otevře dialog pro nahrání souboru, pokud obrázek není nahrán
                 if (!isImageLoaded) {
                     inputOcr.click(); 
                 }
@@ -74,8 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         previewImg.src = event.target.result;
                         imagePanel.hidden = false;
                         
-                        // --- ŘEŠENÍ RESETU ---
-                        clearAllInputs(); // VYMAŽE staré výsledky v polích
+                        clearAllInputs(); // VYMAŽE staré výsledky A RESETUJE TLAČÍTKA
 
                         // Po nahrání nového obrázku zrušíme starou selekci
                         window.MRZ = null; 

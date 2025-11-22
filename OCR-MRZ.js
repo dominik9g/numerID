@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR S ABSOLUTNÍ CDN CESTOU A workerBlobURL: false
+// OCR-MRZ.js - CELÝ SOUBOR S LOKÁLNÍ CESTOU
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -50,17 +50,18 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // *** ABSOLUTNÍ CDN CESTA PRO VŠECHNY SOUBORY ***
-        const cdnPath = 'https://cdn.jsdelivr.net/gh/dominik9g/numerID@main/tessdata/'; 
+        // *** KLÍČOVÁ ZMĚNA: POUŽITÍ LOKÁLNÍ CESTY, ABY SE PŘEDEŠLO CHYBĚ ZABEZPEČENÍ CORS ***
+        // Tesseract bude všechny soubory hledat na stejném serveru (dominik9g.github.io/numerID/)
+        const localPath = 'tessdata/'; 
 
-        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata Z VŠECH TŘECH SOUBORŮ NA CDN: ${cdnPath}`);
+        console.log(`2. Inicializace Tesseract Workeru z LOKÁLNÍ CESTY NA GITHUB PAGES: ${localPath}`);
         
-        // Vynucení použití přesně definovaných cest a zabránění vytváření Blob URL
+        // Vynucení použití lokálních souborů. workerBlobURL: false je kritický.
         worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: cdnPath, // Cesta k mrz.traineddata
-            workerPath: cdnPath + 'worker.min.js', // Cesta k worker scriptu
-            corePath: cdnPath + 'tesseract-core-simd-lstm.wasm.js', // Cesta k WASM jádru
-            workerBlobURL: false, // <-- TOTO JE NOVÝ A KLÍČOVÝ PARAMETR PRO STABILITU NA GITHUB PAGES
+            langPath: localPath, // Cesta k mrz.traineddata
+            workerPath: localPath + 'worker.min.js', // Cesta k worker scriptu
+            corePath: localPath + 'tesseract-core-simd-lstm.wasm.js', // Cesta k WASM jádru
+            workerBlobURL: false, // Vynutí načítání přes workerPath/corePath
             logger: m => console.log('TESSERACT LOG:', m) 
         });
         

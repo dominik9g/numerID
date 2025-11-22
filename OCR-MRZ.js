@@ -42,31 +42,32 @@ async function runOCR(card, mrzCoords) {
     const expectedLines = parseInt(card.getAttribute('data-mrz-lines') || '3'); 
     const inputFields = card.querySelectorAll('input[type="text"]');
     
+    // Pouze vizuální zpětná vazba pro text, 'disabled' je řízeno centrálně
+    btnOcr.textContent = 'ČTENÍ...'; 
+    
     console.log('--- OCR Start ---');
     console.log(`1. Zpracování pro MRZ zónu (předané): ${expectedLines} řádků`, mrzCoords);
     
     let worker = null; 
 
     try {
-        // *** KONEČNÁ OPRAVA: POUŽITÍ PRELOAD PRO VYNUCENÉ NAČTENÍ JAZYKOVÝCH DAT ***
+        // *** KLÍČOVÁ OPRAVA: PLNÁ ABSOLUTNÍ URL ADRESA A POUŽITÍ PRELOAD ***
         const absolutePath = 'https://dominik9g.github.io/numerID/tessdata/'; 
 
         console.log(`2. Inicializace Tesseract Workeru z ABSOLUTNÍ CESTY s PRELOAD: ${absolutePath}`);
         
-        // Jazyk 'mrz' se specifikuje v prvním argumentu.
         worker = await Tesseract.createWorker('mrz', 1, {
-            // Tyto cesty řídí načítání Worker a WASM jádra
+            // Tyto cesty řídí načítání Worker a WASM jádra (použití plné URL je klíčové pro správné načtení Workerem)
             workerPath: absolutePath + 'worker.min.js', 
             corePath: absolutePath + 'tesseract-core-simd-lstm.wasm.js', 
-            workerBlobURL: false, // Důležité pro self-hosting
-
-            // Toto vynutí stažení a uložení jazykového souboru do paměti Workeru,
-            // čímž se obejde chyba s adresováním ve WASM jádru.
-            preload: [absolutePath + 'mrz.traineddata'],
+            workerBlobURL: false, // Důležité pro self-hosting na externí adrese
             
-            // langPath už není striktně potřeba, protože soubor je přednačten,
-            // ale pro pořádek jej nastavíme na základní adresář.
+            // langPath se nastaví na prefix (adresář)
             langPath: absolutePath, 
+
+            // Toto vynutí stažení jazykového souboru před inicializací WASM jádra, 
+            // čímž se obejde jeho chyba v adresování (hledání ./mrz.traineddata).
+            preload: [absolutePath + 'mrz.traineddata'],
             
             logger: m => console.log('TESSERACT LOG:', m) 
         });
@@ -112,7 +113,6 @@ async function runOCR(card, mrzCoords) {
         }
         
     } catch (error) {
-        // Přidáme i explicitní zalogování vnitřní chyby pro detail
         console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error.message, error);
         alert('Chyba při zpracování OCR. Zkuste znovu. (Zkontrolujte konzoli pro TESSERACT LOG)');
         

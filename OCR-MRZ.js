@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR S ALTERNATIVNÍ INICIALIZACÍ PRO WASM/GITHUB PAGES
+// OCR-MRZ.js - CELÝ SOUBOR S ABSOLUTNÍ URL CESTOU A PRELOAD PRO WASM/GITHUB PAGES
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -48,31 +48,30 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // *** POUŽITÍ PLNÉ ABSOLUTNÍ URL ***
-        // Toto je TESSDATA_PREFIX, kde má Worker hledat soubory.
+        // *** KONEČNÁ OPRAVA: POUŽITÍ PRELOAD PRO VYNUCENÉ NAČTENÍ JAZYKOVÝCH DAT ***
         const absolutePath = 'https://dominik9g.github.io/numerID/tessdata/'; 
 
-        console.log(`2. Inicializace Tesseract Workeru z ABSOLUTNÍ CESTY: ${absolutePath}`);
+        console.log(`2. Inicializace Tesseract Workeru z ABSOLUTNÍ CESTY s PRELOAD: ${absolutePath}`);
         
-        // 2a. Vytvoříme Worker bez specifikace jazyka (null)
-        worker = await Tesseract.createWorker(null, 1, {
+        // Jazyk 'mrz' se specifikuje v prvním argumentu.
+        worker = await Tesseract.createWorker('mrz', 1, {
+            // Tyto cesty řídí načítání Worker a WASM jádra
             workerPath: absolutePath + 'worker.min.js', 
             corePath: absolutePath + 'tesseract-core-simd-lstm.wasm.js', 
-            workerBlobURL: false, // Klíčové pro externí/absolutní cesty
+            workerBlobURL: false, // Důležité pro self-hosting
+
+            // Toto vynutí stažení a uložení jazykového souboru do paměti Workeru,
+            // čímž se obejde chyba s adresováním ve WASM jádru.
+            preload: [absolutePath + 'mrz.traineddata'],
+            
+            // langPath už není striktně potřeba, protože soubor je přednačten,
+            // ale pro pořádek jej nastavíme na základní adresář.
+            langPath: absolutePath, 
+            
             logger: m => console.log('TESSERACT LOG:', m) 
         });
         
-        console.log('3. Worker úspěšně vytvořen.');
-        
-        // 2b. Explicitně inicializujeme jazyk a předáme cestu k datům
-        // Tímto se nastavuje TESSDATA_PREFIX a jazyk současně
-        await worker.initialize('mrz', {
-            // POZOR: langPath se používá pouze pro createWorker. 
-            // Pro initialize se používá path, pokud chceme přepsat výchozí hodnotu.
-            path: absolutePath
-        });
-        
-        console.log('4. Jazyk mrz byl úspěšně inicializován s prefixem:', absolutePath);
+        console.log('3. Worker a data úspěšně inicializovány.');
         
         const naturalW = previewImg.naturalWidth;
         const naturalH = previewImg.naturalHeight;
@@ -84,11 +83,11 @@ async function runOCR(card, mrzCoords) {
             height: Math.round(naturalH * parseFloat(mrzCoords.h)),
         };
 
-        console.log('5. Spouštění recognice na pixelových souřadnicích:', rectangle);
+        console.log('4. Spouštění recognice na pixelových souřadnicích:', rectangle);
 
         const { data: { text } } = await worker.recognize(previewImg, { rectangle });
         
-        console.log('6. Recognice dokončena. Syrový text:', text);
+        console.log('5. Recognice dokončena. Syrový text:', text);
 
         const lines = processOCRText(text);
         const actualLines = lines.length; 
@@ -109,11 +108,12 @@ async function runOCR(card, mrzCoords) {
                     inputFields[i].value = (lines[i] || '').substring(0, maxLength);
                 }
             }
-            console.log('7. Inputy naplněny. OCR Success.');
+            console.log('6. Inputy naplněny. OCR Success.');
         }
         
     } catch (error) {
-        console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error);
+        // Přidáme i explicitní zalogování vnitřní chyby pro detail
+        console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error.message, error);
         alert('Chyba při zpracování OCR. Zkuste znovu. (Zkontrolujte konzoli pro TESSERACT LOG)');
         
     } finally {

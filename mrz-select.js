@@ -33,7 +33,6 @@ function getCoords(e) {
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
     
-    // Omezení souřadnic na hranice hostitele
     x = Math.max(0, Math.min(x, rect.width));
     y = Math.max(0, Math.min(y, rect.height));
 

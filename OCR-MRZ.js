@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR PRO RELATIVNÍ CESTY (Předpoklad: Vše je ve stejném adresáři na novém hostingu)
+// OCR-MRZ.js - KONEČNÁ VERZE S RELATIVNÍ CESTOU A PRELOAD
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -50,34 +50,30 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // !!! ZMĚNA: POUŽITÍ ČISTÉ RELATIVNÍ CESTY, PŘEDPOKLÁDÁME SPRÁVNÝ HOSTING !!!
+        // !!! KROK 1: POUŽITÍ ČISTÉ RELATIVNÍ CESTY S KONCOVÝM LOMÍTKEM !!!
         const relativePath = './tessdata/'; 
 
-        console.log(`2. Inicializace Tesseract Workeru z RELATIVNÍ CESTY: ${relativePath}`);
+        console.log(`2. Inicializace Tesseract Workeru z RELATIVNÍ CESTY s PRELOAD: ${relativePath}`);
         
-        // Vytvoříme Worker bez specifikace jazyka ('mrz' je null)
-        worker = await Tesseract.createWorker(null, 1, {
+        // Zde vytvoříme Worker S jazykem 'mrz'
+        worker = await Tesseract.createWorker('mrz', 1, {
             // Cesty ke Workeru a WASM jádru
             workerPath: relativePath + 'worker.min.js', 
             corePath: relativePath + 'tesseract-core-simd-lstm.wasm.js', 
             workerBlobURL: false, // Pro self-hosting
             
+            // Nastavuje prefix, kde se soubory hledají
+            langPath: relativePath, 
+            
+            // !!! POUŽITÍ PRELOAD !!! Vynutí stažení dat do Worker FS před inicializací WASM.
+            preload: [relativePath + 'mrz.traineddata'],
+            
             logger: m => console.log('TESSERACT LOG:', m) 
         });
         
-        console.log('3. Worker úspěšně vytvořen.');
+        console.log('3. Worker a data úspěšně inicializovány.');
         
-        // Nastavení TESSDATA_PREFIX pro WASM jádro na relativní cestu
-        console.log(`3a. Nastavení TESSDATA_PREFIX na: ${relativePath}`);
-        await worker.setConfig('TESSDATA_PREFIX', relativePath);
-        
-        // Inicializace jazyka (bude hledat mrz.traineddata uvnitř TESSDATA_PREFIX)
-        console.log('3b. Inicializace jazyka "mrz".');
-        await worker.initialize('mrz');
-        
-        console.log('4. Jazyk "mrz" úspěšně inicializován.');
-        
-        // --- Zbytek logiky OCR ---
+        // --- Zbytek logiky OCR (beze změn) ---
         
         const naturalW = previewImg.naturalWidth;
         const naturalH = previewImg.naturalHeight;
@@ -89,11 +85,11 @@ async function runOCR(card, mrzCoords) {
             height: Math.round(naturalH * parseFloat(mrzCoords.h)),
         };
 
-        console.log('5. Spouštění recognice na pixelových souřadnicích:', rectangle);
+        console.log('4. Spouštění recognice na pixelových souřadnicích:', rectangle);
 
         const { data: { text } } = await worker.recognize(previewImg, { rectangle });
         
-        console.log('6. Recognice dokončena. Syrový text:', text);
+        console.log('5. Recognice dokončena. Syrový text:', text);
 
         const lines = processOCRText(text);
         const actualLines = lines.length; 
@@ -114,7 +110,7 @@ async function runOCR(card, mrzCoords) {
                     inputFields[i].value = (lines[i] || '').substring(0, maxLength);
                 }
             }
-            console.log('7. Inputy naplněny. OCR Success.');
+            console.log('6. Inputy naplněny. OCR Success.');
         }
         
     } catch (error) {

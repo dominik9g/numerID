@@ -1,8 +1,21 @@
-// img-upload.js
+// img-upload.js - CELÝ SOUBOR
 
 document.addEventListener("DOMContentLoaded", () => {
     const imagePanel = document.getElementById('image-panel');
     const previewImg = document.getElementById('preview-img');
+
+    /**
+     * Vymaže všechny inputy a výsledky kontroly v sekcích.
+     */
+    function clearAllInputs() {
+        document.querySelectorAll(".card input[type='text']").forEach(input => {
+            input.value = '';
+        });
+        document.querySelectorAll(".mrz-result").forEach(resultDiv => {
+            resultDiv.innerHTML = '';
+            resultDiv.classList.remove('show');
+        });
+    }
 
     document.querySelectorAll(".card").forEach(card=>{
         // 1. Logika tlačítka KONTROLA a VKLÁDACÍ TLAČÍTKA (Beze změn)
@@ -38,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         
         
-        // 2. Logika tlačítka OCR (Nyní slouží jen pro nahrání souboru)
+        // 2. Logika tlačítka OCR (Slouží jen pro nahrání souboru)
         const btnOcr = card.querySelector(".ocr-btn");
         const inputOcr = card.querySelector(".ocr-input"); 
 
@@ -47,11 +60,8 @@ document.addEventListener("DOMContentLoaded", () => {
             btnOcr.addEventListener('click', () => {
                 const isImageLoaded = previewImg.src.startsWith('data:'); 
                 
-                // Pokud obrázek není nahrán, otevřeme dialog. Jinak nic neděláme (OCR se spouští při výběru).
                 if (!isImageLoaded) {
                     inputOcr.click(); 
-                } else {
-                    // console.log('Obrázek je nahrán, OCR se spouští výběrem zóny.');
                 }
             });
 
@@ -64,6 +74,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         previewImg.src = event.target.result;
                         imagePanel.hidden = false;
                         
+                        // --- ŘEŠENÍ RESETU ---
+                        clearAllInputs(); // VYMAŽE staré výsledky v polích
+
                         // Po nahrání nového obrázku zrušíme starou selekci
                         window.MRZ = null; 
                         

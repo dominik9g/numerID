@@ -6,6 +6,7 @@ let startX, startY;
 let selectionRect;
 let mrzHost;
 let previewImg;
+let activeOcrCount = 0; // NOVÝ ČÍTAČ PRO SYNCHRONIZACI
 
 document.addEventListener('DOMContentLoaded', () => {
     mrzHost = document.getElementById('mrz-host');
@@ -76,6 +77,28 @@ function resizeSelection(e) {
     selectionRect.style.height = height + 'px';
 }
 
+// GLOBÁLNÍ FUNKCE pro reaktivaci všech tlačítek OCR
+function resetOcrButtons() {
+    document.querySelectorAll(".ocr-btn").forEach(btn => {
+        btn.textContent = 'OCR';
+        btn.disabled = false;
+    });
+    console.log("DEBUG: Všechna tlačítka OCR reaktivována centrálně.");
+}
+
+
+// NOVÁ GLOBÁLNÍ FUNKCE volaná na konci každého workeru (v OCR-MRZ.js)
+window.signalOcrEnd = function() {
+    activeOcrCount--;
+    console.log(`DEBUG: OCR operace dokončena. Zbývá aktivních: ${activeOcrCount}`);
+
+    if (activeOcrCount <= 0) {
+        activeOcrCount = 0; 
+        resetOcrButtons();
+    }
+};
+
+
 // 5. Ukončení výběru, uložení souřadnic A AUTOMATICKÉ SPUŠTĚNÍ OCR
 function endSelection() {
     if (!isSelecting) return;
@@ -122,10 +145,19 @@ function endSelection() {
         if (isImageReady && parseFloat(currentMRZ.w) > 0 && parseFloat(currentMRZ.h) > 0) { 
             console.log('Detekováno uvolnění myši. Automaticky spouštím OCR pro všechny dostupné sekce.');
             
-            // Spustit OCR s PŘEDÁNÍM souřadnic
+            // ZDE ZAJISTÍME DEAKTIVACI VŠECH TLAČÍTEK a spuštění čítače
+            document.querySelectorAll(".ocr-btn").forEach(btn => {
+                btn.textContent = 'ČTENÍ...';
+                btn.disabled = true; 
+            });
+            activeOcrCount = 0; // Reset čítače
+
             document.querySelectorAll(".card").forEach(card => {
+                activeOcrCount++;
                 runOCR(card, currentMRZ); 
             });
+            console.log(`DEBUG: Spuštěno ${activeOcrCount} OCR operací.`);
+
 
         } else {
             console.warn('Obrázek není připraven nebo výběr je neplatný. OCR nespouštím.');

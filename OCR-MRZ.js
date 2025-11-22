@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR S OPRAVOU CEST K DATŮM (pouze langPath)
+// OCR-MRZ.js - CELÝ SOUBOR S EXPLICITNÍMI LOKÁLNÍMI CESTAMI VŠECH SOUBORŮ
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -26,7 +26,7 @@ async function runOCR(card, mrzCoords) {
     if (!mrzCoords) { 
         console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí PŘEDANÉ MRZ souřadnice.');
         
-        // Zajištění, že centrální čítač sníží hodnotu, i když worker nespustíme
+        // Zajištění, že centrální čítač sníží hodnotu
         if (typeof signalOcrEnd === 'function') {
             signalOcrEnd();
         }
@@ -46,15 +46,15 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // *** KLÍČOVÁ ZMĚNA: Ponecháváme POUZE langPath pro custom data MRZ ***
-        // Tesseract.js si najde Core a Worker soubory sám z cesty, kde načetl hlavní script (unpkg)
-        const langDataPath = 'tessdata/'; // Lokální cesta pro mrz.traineddata.gz
+        // *** KLÍČOVÁ ZMĚNA: Vše směřuje do lokální složky tessdata/ ***
+        const localPath = 'tessdata/'; 
 
-        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z cesty: ${langDataPath}`);
+        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z cesty: ${localPath}`);
         
         worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: langDataPath, // Lokální data
-            // corePath a workerPath NENASTAVUJEME!
+            langPath: localPath, // Lokální data mrz.traineddata.gz
+            corePath: localPath + 'tesseract-core-simd-lstm.wasm.js', // Lokální Core
+            workerPath: localPath + 'worker.min.js', // Lokální Worker
         });
         
         console.log('3. Worker úspěšně inicializován.');

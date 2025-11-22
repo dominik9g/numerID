@@ -2,59 +2,59 @@
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
- * Odstraňuje nepovolené znaky a nahrazuje mezery znakem '<'.
- * @param {string} text - Syrový text z Tesseractu.
- * @returns {string[]} Pole vyčištěných MRZ řádků.
  */
 function processOCRText(text) {
     if (!text) return [];
     
-    // 1. Vyčistíme text od nepovolených znaků (povoleno: 0-9, A-Z, <, ., newline)
     const cleanedText = text.replace(/[^0-9A-Z<.\n]/g, '').trim();
-
-    // 2. Rozdělíme na řádky a filtrujeme prázdné řádky
     let lines = cleanedText.split('\n').filter(line => line.length > 0);
-
-    // 3. Nahradíme všechny mezery znakem '<' (standardní korekce MRZ OCR chyb)
     lines = lines.map(line => line.trim().replace(/ /g, '<'));
     
     return lines;
 }
 
 /**
- * Spustí Tesseract OCR na vybrané zóně a naplní input pole v dané sekci.
- * Používá custom trénovací data 'mrz.traineddata.gz' ze stejné složky.
- * @param {HTMLElement} card - Element karty (rodič pro inputy a tlačítka).
+ * Spustí Tesseract OCR na vybrané zóně a naplní input pole.
+ * Používá custom trénovací data 'mrz.traineddata.gz' z jsDelivr CDN.
+ * @param {HTMLElement} card - Element karty.
  */
 async function runOCR(card) {
     const previewImg = document.getElementById('preview-img');
     
-    // Globální proměnná MRZ je definována v mrz-select.js
     if (!previewImg.src || !window.MRZ) {
-        alert('CHYBA: Nejprve nahrajte obrázek a vyberte MRZ zónu.');
+        console.error('CHYBA: runOCR byla zavolána, ale chybí obrázek nebo MRZ zóna.');
         return;
     }
 
     const btnOcr = card.querySelector(".ocr-btn");
-    // Získání počtu řádků ze speciálního atributu, který je definován v index.html
     const mrzLines = parseInt(card.getAttribute('data-mrz-lines') || '3');
     const inputFields = card.querySelectorAll('input[type="text"]');
     
     // Vizuální zpětná vazba
     btnOcr.textContent = 'ČTENÍ...';
     btnOcr.disabled = true;
+    
+    console.log('--- OCR Start ---');
+    console.log('1. Zpracování pro MRZ zónu:', window.MRZ);
+    
+    let worker = null; 
 
     try {
-        // Inicializace workeru Tesseract pro jazyk 'mrz'
-        const worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: './', // Tesseract bude hledat mrz.traineddata.gz v aktuální složce
+        
+        // Změna langPath na jsDelivr URL k vašemu repozitáři
+        const cdnPath = 'https://cdn.jsdelivr.net/gh/dominik9g/numerID/';
+
+        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z CDN: ${cdnPath}`);
+        
+        worker = await Tesseract.createWorker('mrz', 1, {
+            langPath: cdnPath, // Tesseract bude hledat mrz.traineddata.gz na této CDN cestě
         });
         
-        // Získání přirozené velikosti obrázku pro výpočet pixelových souřadnic
+        console.log('3. Worker úspěšně inicializován.');
+        
         const naturalW = previewImg.naturalWidth;
         const naturalH = previewImg.naturalHeight;
         
-        // Převod normalizovaných souřadnic (0-1) na pixelové
         const rectangle = {
             left: Math.round(naturalW * window.MRZ.x),
             top: Math.round(naturalH * window.MRZ.y),
@@ -62,31 +62,34 @@ async function runOCR(card) {
             height: Math.round(naturalH * window.MRZ.h),
         };
 
-        // Spuštění rozpoznávání na vybrané zóně (omezené na rectangle)
+        console.log('4. Spouštění recognice na pixelových souřadnicích:', rectangle);
+
         const { data: { text } } = await worker.recognize(previewImg, { rectangle });
         
-        await worker.terminate();
+        console.log('5. Recognice dokončena. Syrový text:', text);
 
-        // Zpracování textu
         const lines = processOCRText(text);
 
-        // Naplnění inputů
         for (let i = 0; i < mrzLines; i++) {
             if (inputFields[i]) {
-                // Získání maximální délky z placeholderu (např. "(30 znaků)")
                 const maxLengthMatch = inputFields[i].placeholder.match(/\((\d+)/);
                 const maxLength = maxLengthMatch ? parseInt(maxLengthMatch[1]) : 44;
                 
-                // Naplníme input a omezíme délku na maximum
                 inputFields[i].value = (lines[i] || '').substring(0, maxLength);
             }
         }
         
+        console.log('6. Inputy naplněny. OCR Success.');
+
     } catch (error) {
-        console.error('OCR Error:', error);
-        alert('Chyba při zpracování OCR. Zkuste znovu. Zkontrolujte, zda je soubor "mrz.traineddata.gz" ve správné složce.');
+        console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error);
+        alert('Chyba při zpracování OCR. Zkuste znovu. Zkontrolujte, zda se soubor nahrává správně z CDN.');
     } finally {
+        if (worker) {
+            await worker.terminate();
+        }
         btnOcr.textContent = 'OCR';
         btnOcr.disabled = false;
+        console.log('--- OCR End ---');
     }
 }

@@ -1,6 +1,6 @@
 // mrz-select.js
 
-let MRZ = null; // Globální proměnná pro uložení souřadnic
+let MRZ = null; // Globální proměnná pro uložení souřadnic (pro externí použití, např. img-upload.js)
 let isSelecting = false;
 let startX, startY;
 let selectionRect;
@@ -81,7 +81,7 @@ function endSelection() {
     if (!isSelecting) return;
     isSelecting = false;
 
-    // ... (Výpočet a uložení MRZ souřadnic) ...
+    // ... (Výpočet souřadnic) ...
     const imageRect = previewImg.getBoundingClientRect();
     const hostRect = mrzHost.getBoundingClientRect();
 
@@ -100,16 +100,18 @@ function endSelection() {
     const relativeW = selectionWidth / imgDisplayWidth;
     const relativeH = selectionHeight / imgDisplayHeight;
 
-    // Uložení finálních souřadnic
-    MRZ = {
+    // Uložení finálních souřadnic do LOKÁLNÍ proměnné
+    const currentMRZ = { 
         x: Math.max(0, relativeX).toFixed(4),
         y: Math.max(0, relativeY).toFixed(4),
         w: relativeW.toFixed(4),
         h: relativeH.toFixed(4)
     };
     
+    window.MRZ = currentMRZ; // Globální nastavení pro konzistenci
+    
     console.log('--- MRZ Zóna vybrána ---');
-    console.log('MRZ (normalizované souřadnice):', MRZ);
+    console.log('MRZ (normalizované souřadnice):', currentMRZ);
     console.log('Souřadnice jsou uloženy v globální proměnné MRZ.');
 
     // --- NOVÁ LOGIKA: AUTOMATICKÉ SPUŠTĚNÍ OCR ---
@@ -117,12 +119,12 @@ function endSelection() {
         const isImageReady = (previewImg.src && previewImg.src.startsWith('data:'));
         
         // Kontrolujeme, že máme Data URL a že výběr není nulový
-        if (isImageReady && parseFloat(MRZ.w) > 0 && parseFloat(MRZ.h) > 0) { 
+        if (isImageReady && parseFloat(currentMRZ.w) > 0 && parseFloat(currentMRZ.h) > 0) { 
             console.log('Detekováno uvolnění myši. Automaticky spouštím OCR pro všechny dostupné sekce.');
             
-            // Spustit OCR pro všechny MRZ karty na stránce
+            // Spustit OCR s PŘEDÁNÍM souřadnic
             document.querySelectorAll(".card").forEach(card => {
-                runOCR(card); 
+                runOCR(card, currentMRZ); 
             });
 
         } else {

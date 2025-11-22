@@ -25,6 +25,11 @@ async function runOCR(card, mrzCoords) {
     
     if (!mrzCoords) { 
         console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí PŘEDANÉ MRZ souřadnice.');
+        
+        // Signalizujeme dokončení i při chybě před spuštěním workeru
+        if (typeof signalOcrEnd === 'function') {
+            signalOcrEnd();
+        }
         return;
     }
 
@@ -32,9 +37,9 @@ async function runOCR(card, mrzCoords) {
     const expectedLines = parseInt(card.getAttribute('data-mrz-lines') || '3'); 
     const inputFields = card.querySelectorAll('input[type="text"]');
     
-    // Vizuální zpětná vazba
-    btnOcr.textContent = 'ČTENÍ...';
-    btnOcr.disabled = true;
+    // Vizuální zpětná vazba (text se nastavuje zde, ale disabled je řízeno z mrz-select.js)
+    btnOcr.textContent = 'ČTENÍ...'; 
+    // btnOcr.disabled je nastaveno v mrz-select.js před spuštěním
     
     console.log('--- OCR Start ---');
     console.log(`1. Zpracování pro MRZ zónu (předané): ${expectedLines} řádků`, mrzCoords);
@@ -94,18 +99,15 @@ async function runOCR(card, mrzCoords) {
         console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error);
         alert('Chyba při zpracování OCR. Zkuste znovu.');
         
-        // Zajištění reaktivace i při kritické chybě, pokud selže Worker
-        btnOcr.textContent = 'OCR';
-        btnOcr.disabled = false;
-        
     } finally {
         if (worker) {
             await worker.terminate();
         }
         
-        // Zajištění reaktivace po ukončení workeru
-        btnOcr.textContent = 'OCR';
-        btnOcr.disabled = false;
+        // Signalizace dokončení centrálnímu čítači
+        if (typeof signalOcrEnd === 'function') {
+            signalOcrEnd();
+        }
         
         console.log('--- OCR End ---');
     }

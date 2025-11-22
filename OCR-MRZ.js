@@ -6,8 +6,10 @@
 function processOCRText(text) {
     if (!text) return [];
     
+    // Povoluje pouze 0-9, A-Z, <, ., newline
     const cleanedText = text.replace(/[^0-9A-Z<.\n]/g, '').trim();
     let lines = cleanedText.split('\n').filter(line => line.length > 0);
+    // Nahrazuje mezery znakem '<'
     lines = lines.map(line => line.trim().replace(/ /g, '<'));
     
     return lines;
@@ -16,14 +18,14 @@ function processOCRText(text) {
 /**
  * Spustí Tesseract OCR na vybrané zóně a naplní input pole.
  * @param {HTMLElement} card - Element karty.
+ * @param {Object} mrzCoords - PŘEDANÉ souřadnice MRZ (x, y, w, h).
  */
-async function runOCR(card) {
+async function runOCR(card, mrzCoords) { // Přijímá druhý argument
     const previewImg = document.getElementById('preview-img');
     
-    // Zjednodušená kontrola: Spoléháme se, že mrz-select.js zajistil validní Data URL.
-    if (!window.MRZ) { 
-        // Tato chyba by se neměla objevit, protože mrz-select.js stav ověřuje.
-        console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí MRZ zóna.');
+    // Změněná kontrola: kontroluje PŘEDANÉ souřadnice
+    if (!mrzCoords) { 
+        console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí PŘEDANÉ MRZ souřadnice.');
         return;
     }
 
@@ -36,7 +38,7 @@ async function runOCR(card) {
     btnOcr.disabled = true;
     
     console.log('--- OCR Start ---');
-    console.log('1. Zpracování pro MRZ zónu:', window.MRZ);
+    console.log('1. Zpracování pro MRZ zónu (předané):', mrzCoords);
     
     let worker = null; 
 
@@ -54,11 +56,12 @@ async function runOCR(card) {
         const naturalW = previewImg.naturalWidth;
         const naturalH = previewImg.naturalHeight;
         
+        // Používáme PŘEDANÉ mrzCoords
         const rectangle = {
-            left: Math.round(naturalW * parseFloat(window.MRZ.x)),
-            top: Math.round(naturalH * parseFloat(window.MRZ.y)),
-            width: Math.round(naturalW * parseFloat(window.MRZ.w)),
-            height: Math.round(naturalH * parseFloat(window.MRZ.h)),
+            left: Math.round(naturalW * parseFloat(mrzCoords.x)), 
+            top: Math.round(naturalH * parseFloat(mrzCoords.y)),
+            width: Math.round(naturalW * parseFloat(mrzCoords.w)),
+            height: Math.round(naturalH * parseFloat(mrzCoords.h)),
         };
 
         console.log('4. Spouštění recognice na pixelových souřadnicích:', rectangle);

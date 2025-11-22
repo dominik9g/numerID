@@ -1,4 +1,4 @@
-// OCR-MRZ.js
+// OCR-MRZ.js - CELÝ SOUBOR
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -20,17 +20,17 @@ function processOCRText(text) {
  * @param {HTMLElement} card - Element karty.
  * @param {Object} mrzCoords - PŘEDANÉ souřadnice MRZ (x, y, w, h).
  */
-async function runOCR(card, mrzCoords) { // Přijímá druhý argument
+async function runOCR(card, mrzCoords) { 
     const previewImg = document.getElementById('preview-img');
     
-    // Změněná kontrola: kontroluje PŘEDANÉ souřadnice
     if (!mrzCoords) { 
         console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí PŘEDANÉ MRZ souřadnice.');
         return;
     }
 
     const btnOcr = card.querySelector(".ocr-btn");
-    const mrzLines = parseInt(card.getAttribute('data-mrz-lines') || '3');
+    // Zjistíme, kolik řádků má karta očekávat (2 nebo 3)
+    const expectedLines = parseInt(card.getAttribute('data-mrz-lines') || '3'); 
     const inputFields = card.querySelectorAll('input[type="text"]');
     
     // Vizuální zpětná vazba
@@ -38,7 +38,7 @@ async function runOCR(card, mrzCoords) { // Přijímá druhý argument
     btnOcr.disabled = true;
     
     console.log('--- OCR Start ---');
-    console.log('1. Zpracování pro MRZ zónu (předané):', mrzCoords);
+    console.log(`1. Zpracování pro MRZ zónu (předané): ${expectedLines} řádků`, mrzCoords);
     
     let worker = null; 
 
@@ -56,7 +56,6 @@ async function runOCR(card, mrzCoords) { // Přijímá druhý argument
         const naturalW = previewImg.naturalWidth;
         const naturalH = previewImg.naturalHeight;
         
-        // Používáme PŘEDANÉ mrzCoords
         const rectangle = {
             left: Math.round(naturalW * parseFloat(mrzCoords.x)), 
             top: Math.round(naturalH * parseFloat(mrzCoords.y)),
@@ -71,18 +70,26 @@ async function runOCR(card, mrzCoords) { // Přijímá druhý argument
         console.log('5. Recognice dokončena. Syrový text:', text);
 
         const lines = processOCRText(text);
+        const actualLines = lines.length; // Zjištěný počet řádků
 
-        for (let i = 0; i < mrzLines; i++) {
-            if (inputFields[i]) {
-                const maxLengthMatch = inputFields[i].placeholder.match(/\((\d+)/);
-                const maxLength = maxLengthMatch ? parseInt(maxLengthMatch[1]) : 44;
-                
-                inputFields[i].value = (lines[i] || '').substring(0, maxLength);
+        // --- ŘEŠENÍ KONTAMINACE ---
+        if (actualLines === 0) {
+            console.warn(`OCR result for card (lines: ${expectedLines}) was empty.`);
+        } else if (actualLines !== expectedLines) {
+            console.warn(`OCR result mismatch for card (expected: ${expectedLines}, actual: ${actualLines}). Skipping fill to avoid cross-contamination.`);
+        } else {
+            // Pouze pokud se shoduje počet řádků, propíšeme data
+            for (let i = 0; i < expectedLines; i++) {
+                if (inputFields[i]) {
+                    const maxLengthMatch = inputFields[i].placeholder.match(/\((\d+)/);
+                    const maxLength = maxLengthMatch ? parseInt(maxLengthMatch[1]) : 44;
+                    
+                    inputFields[i].value = (lines[i] || '').substring(0, maxLength);
+                }
             }
+            console.log('6. Inputy naplněny. OCR Success.');
         }
         
-        console.log('6. Inputy naplněny. OCR Success.');
-
     } catch (error) {
         console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error);
         alert('Chyba při zpracování OCR. Zkuste znovu.');

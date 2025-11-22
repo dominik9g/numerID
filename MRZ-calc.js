@@ -1,3 +1,5 @@
+// MRZ-calc.js
+
 function charValue(c) {
   if (!c) return 0;
   if (c >= '0' && c <= '9') return c.charCodeAt(0) - 48;

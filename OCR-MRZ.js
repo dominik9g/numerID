@@ -6,10 +6,8 @@
 function processOCRText(text) {
     if (!text) return [];
     
-    // Povoluje pouze 0-9, A-Z, <, ., newline
     const cleanedText = text.replace(/[^0-9A-Z<.\n]/g, '').trim();
     let lines = cleanedText.split('\n').filter(line => line.length > 0);
-    // Nahrazuje mezery znakem '<'
     lines = lines.map(line => line.trim().replace(/ /g, '<'));
     
     return lines;
@@ -22,9 +20,10 @@ function processOCRText(text) {
 async function runOCR(card) {
     const previewImg = document.getElementById('preview-img');
     
-    // Zpřísněná kontrola: Tuto chybu by nyní neměl skript mrz-select.js dopustit.
-    if (!window.MRZ || !previewImg.src.startsWith('data:')) {
-        console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí validní Data URL obrázku nebo MRZ zóna.');
+    // Zjednodušená kontrola: Spoléháme se, že mrz-select.js zajistil validní Data URL.
+    if (!window.MRZ) { 
+        // Tato chyba by se neměla objevit, protože mrz-select.js stav ověřuje.
+        console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí MRZ zóna.');
         return;
     }
 

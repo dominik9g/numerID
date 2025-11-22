@@ -1,4 +1,4 @@
-// img-upload.js
+// img-upload.js - CELÝ SOUBOR S OPRAVENOU LOGIKOU TLAČÍTKA OCR
 
 document.addEventListener("DOMContentLoaded", () => {
     const imagePanel = document.getElementById('image-panel');
@@ -66,12 +66,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (btnOcr && inputOcr) {
             
             btnOcr.addEventListener('click', () => {
-                const isImageLoaded = previewImg.src.startsWith('data:'); 
-                
-                // Otevře dialog pro nahrání souboru, pokud obrázek není nahrán
-                if (!isImageLoaded) {
-                    inputOcr.click(); 
-                }
+                // PŮVODNÍ PODMÍNKA BYLA ZRUŠENA. Vždy otevřít dialog pro výběr souboru.
+                inputOcr.click(); 
             });
 
             // Logika nahrávání souboru přes inputOcr change event

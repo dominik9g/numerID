@@ -1,4 +1,4 @@
-// OCR-MRZ.js - KONEČNÁ VERZE S RELATIVNÍ CESTOU A PRELOAD
+// OCR-MRZ.js - KONEČNÁ VERZE S RELATIVNÍ CESTOU A PRELOAD PRO GZ SOUBOR
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -42,7 +42,7 @@ async function runOCR(card, mrzCoords) {
     const expectedLines = parseInt(card.getAttribute('data-mrz-lines') || '3'); 
     const inputFields = card.querySelectorAll('input[type="text"]');
     
-    btnOcr.textContent = 'ČTENÍ...'; 
+    // Nastavuje ČTENÍ... a deaktivuje tlačítka přes mrz-select.js (kvůli centrální logice)
     
     console.log('--- OCR Start ---');
     console.log(`1. Zpracování pro MRZ zónu (předané): ${expectedLines} řádků`, mrzCoords);
@@ -52,26 +52,27 @@ async function runOCR(card, mrzCoords) {
     try {
         // !!! KROK 1: POUŽITÍ ČISTÉ RELATIVNÍ CESTY S KONCOVÝM LOMÍTKEM !!!
         const relativePath = './tessdata/'; 
+        const trainedDataFile = 'mrz.traineddata.gz'; // !!! ZMĚNA NA GZ SOUBOR !!!
 
-        console.log(`2. Inicializace Tesseract Workeru z RELATIVNÍ CESTY s PRELOAD: ${relativePath}`);
+        console.log(`2. Inicializace Tesseract Workeru z RELATIVNÍ CESTY s PRELOAD pro: ${trainedDataFile}`);
         
-        // Zde vytvoříme Worker S jazykem 'mrz'
+        // Vytvoříme Worker S jazykem 'mrz'
         worker = await Tesseract.createWorker('mrz', 1, {
             // Cesty ke Workeru a WASM jádru
             workerPath: relativePath + 'worker.min.js', 
             corePath: relativePath + 'tesseract-core-simd-lstm.wasm.js', 
             workerBlobURL: false, // Pro self-hosting
             
-            // Nastavuje prefix, kde se soubory hledají
+            // Nastavuje prefix, kde se soubory hledají (tuto cestu interně používá preload)
             langPath: relativePath, 
             
-            // !!! POUŽITÍ PRELOAD !!! Vynutí stažení dat do Worker FS před inicializací WASM.
-            preload: [relativePath + 'mrz.traineddata'],
+            // !!! POUŽITÍ PRELOAD NA GZ SOUBOR !!! Vynutí stažení dat do Worker FS
+            preload: [relativePath + trainedDataFile],
             
             logger: m => console.log('TESSERACT LOG:', m) 
         });
         
-        console.log('3. Worker a data úspěšně inicializovány.');
+        console.log('3. Worker a data úspěšně inicializovány. Předpokládá se použití přednačteného GZ souboru.');
         
         // --- Zbytek logiky OCR (beze změn) ---
         

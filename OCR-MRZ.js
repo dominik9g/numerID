@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR S VYČIŠTĚNOU SYNCHRONIZACÍ
+// OCR-MRZ.js - CELÝ SOUBOR S OPRAVOU CESTY K TRÉNOVACÍM DATŮM
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -46,12 +46,13 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        const cdnPath = 'https://cdn.jsdelivr.net/gh/dominik9g/numerID/';
+        // *** ZMĚNA ZDE: Použijeme lokální cestu. Soubor musí být v kořenovém adresáři. ***
+        const localPath = './'; 
 
-        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z CDN: ${cdnPath}`);
+        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z lokální cesty: ${localPath}`);
         
         worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: cdnPath,
+            langPath: localPath, // Tesseract Worker bude hledat './mrz.traineddata.gz'
         });
         
         console.log('3. Worker úspěšně inicializován.');
@@ -97,8 +98,6 @@ async function runOCR(card, mrzCoords) {
     } catch (error) {
         console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error);
         alert('Chyba při zpracování OCR. Zkuste znovu.');
-        
-        // ZMĚNA: NEPROVÁDÍME lokální reset
         
     } finally {
         if (worker) {

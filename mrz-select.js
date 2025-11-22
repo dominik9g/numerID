@@ -1,6 +1,6 @@
-// Globální proměnná pro uložení výsledných MRZ souřadnic
-let MRZ = null;
+// mrz-select.js
 
+let MRZ = null; // Globální proměnná jako požadováno
 let isSelecting = false;
 let startX, startY;
 let selectionRect;
@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
     mrzHost = document.getElementById('mrz-host');
     previewImg = document.getElementById('preview-img');
     
+    // Zabrání chybě, pokud ID chybí
+    if (!mrzHost) {
+        console.error("Chyba: Element s ID 'mrz-host' nebyl nalezen. Zkontrolujte index.html.");
+        return;
+    }
+
     // 1. Vytvoření selekčního rámečku
     selectionRect = document.createElement('div');
     selectionRect.id = 'selection-rect';
@@ -19,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Přidání posluchačů událostí
     mrzHost.addEventListener('mousedown', startSelection);
     mrzHost.addEventListener('mousemove', resizeSelection);
-    document.addEventListener('mouseup', endSelection); // Na document pro bezpečné ukončení, i když myš opustí panel
+    // Využijeme document pro událost up, aby se výběr dokončil i mimo oblast hosta
+    document.addEventListener('mouseup', endSelection); 
 });
 
 // Zjištění souřadnic (relativně k mrzHost)
@@ -28,7 +35,7 @@ function getCoords(e) {
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
     
-    // Omezení souřadnic na hranice hostitele (zajišťuje, že se rámeček nedá táhnout mimo)
+    // Omezení souřadnic na hranice hostitele
     x = Math.max(0, Math.min(x, rect.width));
     y = Math.max(0, Math.min(y, rect.height));
 
@@ -37,7 +44,7 @@ function getCoords(e) {
 
 // 3. Začátek výběru
 function startSelection(e) {
-    // Kontrola, zda se kliklo přímo na obrázek (nebo do prázdna)
+    // Kontrola, zda se kliklo přímo na obrázek
     if (e.target !== previewImg && e.target !== mrzHost) return;
     
     isSelecting = true;
@@ -73,12 +80,12 @@ function resizeSelection(e) {
     selectionRect.style.height = height + 'px';
 }
 
-// 5. Ukončení výběru a uložení souřadnic
+// 5. Ukončení výběru, uložení souřadnic A AUTOMATICKÉ SPUŠTĚNÍ OCR
 function endSelection() {
     if (!isSelecting) return;
     isSelecting = false;
 
-    // Musíme získat souřadnice ZOBRAZENÉHO obrázku, protože rámeček je relativní k hostiteli (mrzHost).
+    // ... (Výpočet a uložení MRZ souřadnic) ...
     const imageRect = previewImg.getBoundingClientRect();
     const hostRect = mrzHost.getBoundingClientRect();
 
@@ -87,28 +94,44 @@ function endSelection() {
     const selectionWidth = parseFloat(selectionRect.style.width);
     const selectionHeight = parseFloat(selectionRect.style.height);
 
-    // Výpočet offsetu obrázku uvnitř hostitele (kvůli object-fit: contain)
     const imgOffsetX = imageRect.left - hostRect.left;
     const imgOffsetY = imageRect.top - hostRect.top;
     const imgDisplayWidth = imageRect.width;
     const imgDisplayHeight = imageRect.height;
-    
-    // Normalizace souřadnic (0 až 1) vzhledem k ZOBRAZENÉ velikosti obrázku
+
     const relativeX = (selectionLeft - imgOffsetX) / imgDisplayWidth;
     const relativeY = (selectionTop - imgOffsetY) / imgDisplayHeight;
     const relativeW = selectionWidth / imgDisplayWidth;
     const relativeH = selectionHeight / imgDisplayHeight;
 
-    // Uložení výsledných souřadnic do globální proměnné MRZ
+    // Uložení finálních souřadnic
     MRZ = {
-        x: Math.max(0, relativeX).toFixed(4), // Oříznutí záporných hodnot na 0
+        x: Math.max(0, relativeX).toFixed(4),
         y: Math.max(0, relativeY).toFixed(4),
         w: relativeW.toFixed(4),
         h: relativeH.toFixed(4)
     };
     
-    // Zobrazíme pro kontrolu, kde se nachází MRZ zóna (v konzoli)
     console.log('--- MRZ Zóna vybrána ---');
     console.log('MRZ (normalizované souřadnice):', MRZ);
     console.log('Souřadnice jsou uloženy v globální proměnné MRZ.');
+
+    // --- NOVÁ LOGIKA: AUTOMATICKÉ SPUŠTĚNÍ OCR ---
+    if (typeof runOCR === 'function') {
+        const isImageLoaded = previewImg.src.startsWith('data:');
+        
+        if (isImageLoaded) {
+            console.log('Detekováno uvolnění myši. Automaticky spouštím OCR pro všechny dostupné sekce.');
+            
+            // Spustit OCR pro všechny MRZ karty na stránce
+            document.querySelectorAll(".card").forEach(card => {
+                runOCR(card); 
+            });
+
+        } else {
+            console.warn('Obrázek nebyl nahrán, OCR nespouštím.');
+        }
+    } else {
+        console.error('Funkce runOCR není definována. Zkontrolujte, zda je skript OCR-MRZ.js načten.');
+    }
 }

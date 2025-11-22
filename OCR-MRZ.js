@@ -1,4 +1,4 @@
-// OCR-MRZ.js - KONEČNÁ VERZE S ABSOLUTNÍ URL A PRELOAD PRO GITHUB PAGES
+// OCR-MRZ.js - CELÝ SOUBOR PRO RELATIVNÍ CESTY (Předpoklad: Vše je ve stejném adresáři na novém hostingu)
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -50,29 +50,34 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // *** KLÍČOVÁ OPRAVA: POUŽITÍ PLNNÉ ABSOLUTNÍ URL ADRESY ***
-        const absolutePath = 'https://dominik9g.github.io/numerID/tessdata/'; 
+        // !!! ZMĚNA: POUŽITÍ ČISTÉ RELATIVNÍ CESTY, PŘEDPOKLÁDÁME SPRÁVNÝ HOSTING !!!
+        const relativePath = './tessdata/'; 
 
-        console.log(`2. Inicializace Tesseract Workeru z ABSOLUTNÍ CESTY s PRELOAD: ${absolutePath}`);
+        console.log(`2. Inicializace Tesseract Workeru z RELATIVNÍ CESTY: ${relativePath}`);
         
-        worker = await Tesseract.createWorker('mrz', 1, {
-            // Cesty ke Workeru a WASM jádru musí být absolutní
-            workerPath: absolutePath + 'worker.min.js', 
-            corePath: absolutePath + 'tesseract-core-simd-lstm.wasm.js', 
-            workerBlobURL: false, // Důležité pro self-hosting
-
-            // langPath nastavuje prefix, kde se soubory hledají
-            langPath: absolutePath, 
-            
-            // !!! NEJDŮLEŽITĚJŠÍ FIX !!!
-            // Preload vynutí stažení a uložení mrz.traineddata do virtuální paměti Workeru, 
-            // čímž se obejde chyba WASM jádra, které hledá relativně (./mrz.traineddata).
-            preload: [absolutePath + 'mrz.traineddata'],
+        // Vytvoříme Worker bez specifikace jazyka ('mrz' je null)
+        worker = await Tesseract.createWorker(null, 1, {
+            // Cesty ke Workeru a WASM jádru
+            workerPath: relativePath + 'worker.min.js', 
+            corePath: relativePath + 'tesseract-core-simd-lstm.wasm.js', 
+            workerBlobURL: false, // Pro self-hosting
             
             logger: m => console.log('TESSERACT LOG:', m) 
         });
         
-        console.log('3. Worker a data úspěšně inicializovány.');
+        console.log('3. Worker úspěšně vytvořen.');
+        
+        // Nastavení TESSDATA_PREFIX pro WASM jádro na relativní cestu
+        console.log(`3a. Nastavení TESSDATA_PREFIX na: ${relativePath}`);
+        await worker.setConfig('TESSDATA_PREFIX', relativePath);
+        
+        // Inicializace jazyka (bude hledat mrz.traineddata uvnitř TESSDATA_PREFIX)
+        console.log('3b. Inicializace jazyka "mrz".');
+        await worker.initialize('mrz');
+        
+        console.log('4. Jazyk "mrz" úspěšně inicializován.');
+        
+        // --- Zbytek logiky OCR ---
         
         const naturalW = previewImg.naturalWidth;
         const naturalH = previewImg.naturalHeight;
@@ -84,11 +89,11 @@ async function runOCR(card, mrzCoords) {
             height: Math.round(naturalH * parseFloat(mrzCoords.h)),
         };
 
-        console.log('4. Spouštění recognice na pixelových souřadnicích:', rectangle);
+        console.log('5. Spouštění recognice na pixelových souřadnicích:', rectangle);
 
         const { data: { text } } = await worker.recognize(previewImg, { rectangle });
         
-        console.log('5. Recognice dokončena. Syrový text:', text);
+        console.log('6. Recognice dokončena. Syrový text:', text);
 
         const lines = processOCRText(text);
         const actualLines = lines.length; 
@@ -109,7 +114,7 @@ async function runOCR(card, mrzCoords) {
                     inputFields[i].value = (lines[i] || '').substring(0, maxLength);
                 }
             }
-            console.log('6. Inputy naplněny. OCR Success.');
+            console.log('7. Inputy naplněny. OCR Success.');
         }
         
     } catch (error) {
@@ -117,14 +122,12 @@ async function runOCR(card, mrzCoords) {
         alert('Chyba při zpracování OCR. Zkuste znovu. (Zkontrolujte konzoli pro TESSERACT LOG)');
         
     } finally {
-        // Reset vizuálního stavu tlačítka (Disabled se řídí v mrz-select.js přes signalOcrEnd)
         btnOcr.textContent = 'OCR'; 
 
         if (worker) {
             await worker.terminate();
         }
         
-        // Centrální signalizace dokončení (pro reaktivaci tlačítek)
         if (typeof signalOcrEnd === 'function') {
             signalOcrEnd();
         }

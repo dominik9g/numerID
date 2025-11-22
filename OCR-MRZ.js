@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR S ABSOLUTNÍ CDN CESTOU PRO JAZYKOVÁ DATA
+// OCR-MRZ.js - CELÝ SOUBOR S ABSOLUTNÍ CDN CESTOU PRO VŠECHNY TŘI SOUBORY
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -50,15 +50,18 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // *** JEDINÁ KLÍČOVÁ ZMĚNA: ABSOLUTNÍ CESTA PŘES JSDELIVR ***
-        const langPathCDN = 'https://cdn.jsdelivr.net/gh/dominik9g/numerID@main/tessdata/'; 
+        // *** KLÍČOVÁ ZMĚNA: ABSOLUTNÍ CDN CESTA PRO VŠECHNY SOUBORY ***
+        // Musí být cesta POUZE k adresáři, kde jsou VŠECHNY 3 SOUBORY.
+        const cdnPath = 'https://cdn.jsdelivr.net/gh/dominik9g/numerID@main/tessdata/'; 
 
-        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata z absolutní CDN cesty: ${langPathCDN}`);
+        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata Z VŠECH TŘECH SOUBORŮ NA CDN: ${cdnPath}`);
         
-        // Použijeme pouze langPath, aby si Worker stáhl mrz.traineddata z CDN.
-        // Ostatní cesty (corePath, workerPath) necháme Tesseract.js najít automaticky z UNPKG.
+        // Vynutíme, aby Worker nenačítal nic automaticky a použil jen CDN cestu
         worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: langPathCDN, 
+            langPath: cdnPath, // Cesta k mrz.traineddata
+            workerPath: cdnPath + 'worker.min.js', // Cesta k worker scriptu
+            corePath: cdnPath + 'tesseract-core-simd-lstm.wasm.js', // Cesta k WASM jádru
+            logger: m => console.log('TESSERACT LOG:', m) // Přidáme logger pro lepší diagnostiku
         });
         
         console.log('3. Worker úspěšně inicializován.');
@@ -103,7 +106,7 @@ async function runOCR(card, mrzCoords) {
         
     } catch (error) {
         console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error);
-        alert('Chyba při zpracování OCR. Zkuste znovu.');
+        alert('Chyba při zpracování OCR. Zkuste znovu. (Zkontrolujte konzoli pro TESSERACT LOG)');
         
     } finally {
         if (worker) {

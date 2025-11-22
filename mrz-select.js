@@ -1,4 +1,4 @@
-// mrz-select.js
+// mrz-select.js - CELÝ SOUBOR
 
 let MRZ = null; // Globální proměnná pro uložení souřadnic
 let isSelecting = false;
@@ -6,7 +6,7 @@ let startX, startY;
 let selectionRect;
 let mrzHost;
 let previewImg;
-let activeOcrCount = 0; // NOVÝ ČÍTAČ PRO SYNCHRONIZACI
+let activeOcrCount = 0; // ČÍTAČ PRO SYNCHRONIZACI
 
 document.addEventListener('DOMContentLoaded', () => {
     mrzHost = document.getElementById('mrz-host');

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>NumerID</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="MRZ-calc.js"></script>
+<script src="img-upload.js" defer></script>
+<script src="mrz-select.js" defer></script>
+</head>
+<body>
+
+<div class="main-layout">
+  
+  <div class="wrapper">
+    <div class="header">
+      <h1>NumerID <sub>PoC v0.3</sub></h1>
+    </div>
+
+    <div class="card" data-mrz-lines="3">
+      <h2>MRZ – OP / NPT</h2>
+      
+      <div class="input-row">
+        <input type="text" placeholder="Řádek 1 (30 znaků)">
+      </div>
+      <div class="input-row">
+        <input type="text" placeholder="Řádek 2 (30 znaků)">
+      </div>
+      <div class="input-row">
+        <input type="text" placeholder="Řádek 3 (30 znaků)">
+      </div>
+
+      <div class="btn-group">
+        <button class="kontrola-btn">KONTROLA</button>
+        <button class="ocr-btn">OCR</button>
+        <input type="file" class="ocr-input" accept="image/*" hidden>
+      </div>
+      <div class="mrz-result"></div>
+    </div>
+
+    <div class="card" data-mrz-lines="2">
+      <h2>MRZ – Cestovní pas</h2>
+
+      <div class="input-row">
+        <input type="text" placeholder="Řádek 1 (44 znaků)">
+      </div>
+      <div class="input-row">
+        <input type="text" placeholder="Řádek 2 (44 znaků)">
+      </div>
+
+      <div class="btn-group">
+        <button class="kontrola-btn">KONTROLA</button>
+        <button class="ocr-btn">OCR</button>
+        <input type="file" class="ocr-input" accept="image/*" hidden>
+      </div>
+      <div class="mrz-result"></div>
+    </div>
+  </div>
+
+  <div id="image-panel" class="image-panel" hidden>
+    <div id="mrz-host" class="sticky-container"> 
+      <img id="preview-img" src="" alt="">
+    </div>
+    <div id="mrz-crop-container"></div>
+  </div>
+
+</div>
+
+</body>
+</html>

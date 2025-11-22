@@ -6,8 +6,10 @@
 function processOCRText(text) {
     if (!text) return [];
     
+    // Povoluje pouze 0-9, A-Z, <, ., newline
     const cleanedText = text.replace(/[^0-9A-Z<.\n]/g, '').trim();
     let lines = cleanedText.split('\n').filter(line => line.length > 0);
+    // Nahrazuje mezery znakem '<'
     lines = lines.map(line => line.trim().replace(/ /g, '<'));
     
     return lines;
@@ -15,14 +17,14 @@ function processOCRText(text) {
 
 /**
  * Spustí Tesseract OCR na vybrané zóně a naplní input pole.
- * Používá custom trénovací data 'mrz.traineddata.gz' z jsDelivr CDN.
  * @param {HTMLElement} card - Element karty.
  */
 async function runOCR(card) {
     const previewImg = document.getElementById('preview-img');
     
-    if (!previewImg.src || !window.MRZ) {
-        console.error('CHYBA: runOCR byla zavolána, ale chybí obrázek nebo MRZ zóna.');
+    // Zpřísněná kontrola: Tuto chybu by nyní neměl skript mrz-select.js dopustit.
+    if (!window.MRZ || !previewImg.src.startsWith('data:')) {
+        console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí validní Data URL obrázku nebo MRZ zóna.');
         return;
     }
 
@@ -40,14 +42,12 @@ async function runOCR(card) {
     let worker = null; 
 
     try {
-        
-        // Změna langPath na jsDelivr URL k vašemu repozitáři
         const cdnPath = 'https://cdn.jsdelivr.net/gh/dominik9g/numerID/';
 
         console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z CDN: ${cdnPath}`);
         
         worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: cdnPath, // Tesseract bude hledat mrz.traineddata.gz na této CDN cestě
+            langPath: cdnPath,
         });
         
         console.log('3. Worker úspěšně inicializován.');
@@ -56,10 +56,10 @@ async function runOCR(card) {
         const naturalH = previewImg.naturalHeight;
         
         const rectangle = {
-            left: Math.round(naturalW * window.MRZ.x),
-            top: Math.round(naturalH * window.MRZ.y),
-            width: Math.round(naturalW * window.MRZ.w),
-            height: Math.round(naturalH * window.MRZ.h),
+            left: Math.round(naturalW * parseFloat(window.MRZ.x)),
+            top: Math.round(naturalH * parseFloat(window.MRZ.y)),
+            width: Math.round(naturalW * parseFloat(window.MRZ.w)),
+            height: Math.round(naturalH * parseFloat(window.MRZ.h)),
         };
 
         console.log('4. Spouštění recognice na pixelových souřadnicích:', rectangle);
@@ -83,7 +83,7 @@ async function runOCR(card) {
 
     } catch (error) {
         console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error);
-        alert('Chyba při zpracování OCR. Zkuste znovu. Zkontrolujte, zda se soubor nahrává správně z CDN.');
+        alert('Chyba při zpracování OCR. Zkuste znovu.');
     } finally {
         if (worker) {
             await worker.terminate();

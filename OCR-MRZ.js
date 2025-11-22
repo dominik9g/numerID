@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR S NOVOU KONFIGURACÍ workerBlobURL: false
+// OCR-MRZ.js - CELÝ SOUBOR S ABSOLUTNÍ CDN CESTOU PRO JAZYKOVÁ DATA
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -15,7 +15,7 @@ function processOCRText(text) {
     return lines;
 }
 
-// Funkce pro centrální signalizaci z mrz-select.js (Potřeba, i když není definována v tomto souboru)
+// Funkce pro centrální signalizaci z mrz-select.js 
 if (typeof signalOcrEnd !== 'function') {
     window.signalOcrEnd = () => { /* Dummy */ };
 }
@@ -32,7 +32,6 @@ async function runOCR(card, mrzCoords) {
     if (!mrzCoords) { 
         console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí PŘEDANÉ MRZ souřadnice.');
         
-        // Zajištění, že centrální čítač sníží hodnotu
         if (typeof signalOcrEnd === 'function') {
             signalOcrEnd();
         }
@@ -43,7 +42,6 @@ async function runOCR(card, mrzCoords) {
     const expectedLines = parseInt(card.getAttribute('data-mrz-lines') || '3'); 
     const inputFields = card.querySelectorAll('input[type="text"]');
     
-    // Pouze vizuální zpětná vazba pro text
     btnOcr.textContent = 'ČTENÍ...'; 
     
     console.log('--- OCR Start ---');
@@ -52,16 +50,15 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // *** KLÍČOVÁ ZMĚNA: Vše směřuje do lokální složky tessdata/ ***
-        const localPath = 'tessdata/'; 
+        // *** JEDINÁ KLÍČOVÁ ZMĚNA: ABSOLUTNÍ CESTA PŘES JSDELIVR ***
+        const langPathCDN = 'https://cdn.jsdelivr.net/gh/dominik9g/numerID@main/tessdata/'; 
 
-        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata z cesty: ${localPath}`);
+        console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata z absolutní CDN cesty: ${langPathCDN}`);
         
+        // Použijeme pouze langPath, aby si Worker stáhl mrz.traineddata z CDN.
+        // Ostatní cesty (corePath, workerPath) necháme Tesseract.js najít automaticky z UNPKG.
         worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: localPath, 
-            corePath: localPath + 'tesseract-core-simd-lstm.wasm.js', 
-            workerPath: localPath + 'worker.min.js', 
-            workerBlobURL: false, // *** KLÍČOVÉ: Zabraňuje Workeru ztratit kontext s cestami ***
+            langPath: langPathCDN, 
         });
         
         console.log('3. Worker úspěšně inicializován.');
@@ -113,7 +110,6 @@ async function runOCR(card, mrzCoords) {
             await worker.terminate();
         }
         
-        // Centrální signalizace dokončení
         if (typeof signalOcrEnd === 'function') {
             signalOcrEnd();
         }

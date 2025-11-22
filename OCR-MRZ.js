@@ -57,12 +57,15 @@ async function runOCR(card, mrzCoords) {
         console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata Z VŠECH TŘECH SOUBORŮ NA CDN: ${cdnPath}`);
         
         // Vynutíme, aby Worker nenačítal nic automaticky a použil jen CDN cestu
+        // OCR-MRZ.js (Klíčová část)
+        // ...
         worker = await Tesseract.createWorker('mrz', 1, {
             langPath: cdnPath, // Cesta k mrz.traineddata
             workerPath: cdnPath + 'worker.min.js', // Cesta k worker scriptu
             corePath: cdnPath + 'tesseract-core-simd-lstm.wasm.js', // Cesta k WASM jádru
-            logger: m => console.log('TESSERACT LOG:', m) // Přidáme logger pro lepší diagnostiku
+            logger: m => console.log('TESSERACT LOG:', m) 
         });
+// ...
         
         console.log('3. Worker úspěšně inicializován.');
         

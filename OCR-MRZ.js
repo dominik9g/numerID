@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR
+// OCR-MRZ.js - CELÝ SOUBOR S VYČIŠTĚNOU SYNCHRONIZACÍ
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -26,7 +26,7 @@ async function runOCR(card, mrzCoords) {
     if (!mrzCoords) { 
         console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí PŘEDANÉ MRZ souřadnice.');
         
-        // Signalizujeme dokončení i při chybě před spuštěním workeru
+        // Signalizujeme dokončení i při chybě před spuštěním workeru (activeOcrCount byl navýšen v mrz-select.js)
         if (typeof signalOcrEnd === 'function') {
             signalOcrEnd();
         }
@@ -37,9 +37,8 @@ async function runOCR(card, mrzCoords) {
     const expectedLines = parseInt(card.getAttribute('data-mrz-lines') || '3'); 
     const inputFields = card.querySelectorAll('input[type="text"]');
     
-    // Vizuální zpětná vazba (text se nastavuje zde, ale disabled je řízeno z mrz-select.js)
+    // ZMĚNA: Nastavujeme pouze text. disabled je řízeno globálně v mrz-select.js
     btnOcr.textContent = 'ČTENÍ...'; 
-    // btnOcr.disabled je nastaveno v mrz-select.js před spuštěním
     
     console.log('--- OCR Start ---');
     console.log(`1. Zpracování pro MRZ zónu (předané): ${expectedLines} řádků`, mrzCoords);
@@ -98,6 +97,8 @@ async function runOCR(card, mrzCoords) {
     } catch (error) {
         console.error('OCR CRITICAL ERROR: Zpracování Tesseractu selhalo.', error);
         alert('Chyba při zpracování OCR. Zkuste znovu.');
+        
+        // ZMĚNA: NEPROVÁDÍME lokální reset
         
     } finally {
         if (worker) {

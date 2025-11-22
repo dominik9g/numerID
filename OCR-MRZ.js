@@ -1,4 +1,4 @@
-// OCR-MRZ.js - CELÝ SOUBOR S EXPLICITNÍMI CESTAMI CORE SOUBORŮ
+// OCR-MRZ.js - CELÝ SOUBOR S OPRAVOU CEST K DATŮM (pouze langPath)
 
 /**
  * Předzpracuje text získaný z Tesseractu do formátu MRZ řádků.
@@ -26,7 +26,7 @@ async function runOCR(card, mrzCoords) {
     if (!mrzCoords) { 
         console.error('OCR-MRZ.js ERROR: runOCR byla zavolána, ale chybí PŘEDANÉ MRZ souřadnice.');
         
-        // Signalizujeme dokončení i při chybě před spuštěním workeru (activeOcrCount byl navýšen v mrz-select.js)
+        // Zajištění, že centrální čítač sníží hodnotu, i když worker nespustíme
         if (typeof signalOcrEnd === 'function') {
             signalOcrEnd();
         }
@@ -37,7 +37,7 @@ async function runOCR(card, mrzCoords) {
     const expectedLines = parseInt(card.getAttribute('data-mrz-lines') || '3'); 
     const inputFields = card.querySelectorAll('input[type="text"]');
     
-    // ZMĚNA: Nastavujeme pouze text. disabled je řízeno globálně v mrz-select.js
+    // Pouze vizuální zpětná vazba pro text, 'disabled' je řízeno centrálně
     btnOcr.textContent = 'ČTENÍ...'; 
     
     console.log('--- OCR Start ---');
@@ -46,17 +46,15 @@ async function runOCR(card, mrzCoords) {
     let worker = null; 
 
     try {
-        // *** KLÍČOVÁ ZMĚNA: Explicitní definice cest k Tesseract Core souborům ***
-        // Používáme CDN pro Core a Worker, abychom minimalizovali problémy Edge/Chromium.
-        const tesseractCDN = 'https://unpkg.com/tesseract.js@5.0.3/dist/'; 
+        // *** KLÍČOVÁ ZMĚNA: Ponecháváme POUZE langPath pro custom data MRZ ***
+        // Tesseract.js si najde Core a Worker soubory sám z cesty, kde načetl hlavní script (unpkg)
         const langDataPath = 'tessdata/'; // Lokální cesta pro mrz.traineddata.gz
 
         console.log(`2. Inicializace Tesseract Workeru s mrz.traineddata.gz z cesty: ${langDataPath}`);
         
         worker = await Tesseract.createWorker('mrz', 1, {
-            langPath: langDataPath, // Lokální data (tessdata/mrz.traineddata.gz)
-            corePath: tesseractCDN + 'tesseract-core-simd-lstm.wasm.js', // CDN pro WASM Core
-            workerPath: tesseractCDN + 'worker.min.js', // CDN pro Worker Script
+            langPath: langDataPath, // Lokální data
+            // corePath a workerPath NENASTAVUJEME!
         });
         
         console.log('3. Worker úspěšně inicializován.');
@@ -108,7 +106,7 @@ async function runOCR(card, mrzCoords) {
             await worker.terminate();
         }
         
-        // Signalizace dokončení centrálnímu čítači
+        // Centrální signalizace dokončení
         if (typeof signalOcrEnd === 'function') {
             signalOcrEnd();
         }

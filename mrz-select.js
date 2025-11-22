@@ -1,6 +1,6 @@
 // mrz-select.js
 
-let MRZ = null; // Globální proměnná jako požadováno
+let MRZ = null; // Globální proměnná pro uložení souřadnic
 let isSelecting = false;
 let startX, startY;
 let selectionRect;
@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     mrzHost = document.getElementById('mrz-host');
     previewImg = document.getElementById('preview-img');
     
-    // Zabrání chybě, pokud ID chybí
     if (!mrzHost) {
         console.error("Chyba: Element s ID 'mrz-host' nebyl nalezen. Zkontrolujte index.html.");
         return;
@@ -25,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Přidání posluchačů událostí
     mrzHost.addEventListener('mousedown', startSelection);
     mrzHost.addEventListener('mousemove', resizeSelection);
-    // Využijeme document pro událost up, aby se výběr dokončil i mimo oblast hosta
     document.addEventListener('mouseup', endSelection); 
 });
 
@@ -44,7 +42,6 @@ function getCoords(e) {
 
 // 3. Začátek výběru
 function startSelection(e) {
-    // Kontrola, zda se kliklo přímo na obrázek
     if (e.target !== previewImg && e.target !== mrzHost) return;
     
     isSelecting = true;
@@ -118,9 +115,10 @@ function endSelection() {
 
     // --- NOVÁ LOGIKA: AUTOMATICKÉ SPUŠTĚNÍ OCR ---
     if (typeof runOCR === 'function') {
-        const isImageLoaded = previewImg.src.startsWith('data:');
+        const isImageReady = (previewImg.src && previewImg.src.startsWith('data:'));
         
-        if (isImageLoaded) {
+        // Kontrolujeme, že máme Data URL a že výběr není nulový
+        if (isImageReady && parseFloat(MRZ.w) > 0 && parseFloat(MRZ.h) > 0) { 
             console.log('Detekováno uvolnění myši. Automaticky spouštím OCR pro všechny dostupné sekce.');
             
             // Spustit OCR pro všechny MRZ karty na stránce
@@ -129,7 +127,7 @@ function endSelection() {
             });
 
         } else {
-            console.warn('Obrázek nebyl nahrán, OCR nespouštím.');
+            console.warn('Obrázek není připraven nebo výběr je neplatný. OCR nespouštím.');
         }
     } else {
         console.error('Funkce runOCR není definována. Zkontrolujte, zda je skript OCR-MRZ.js načten.');
